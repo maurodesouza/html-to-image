@@ -43,19 +43,53 @@ function embedImageNode(
   clonedNode: HTMLElement,
   options: Options,
 ): Promise<HTMLElement> {
-  if (!(clonedNode instanceof HTMLImageElement) || isDataUrl(clonedNode.src)) {
-    return Promise.resolve(clonedNode)
-  }
+  const isImageInstance =
+    clonedNode instanceof HTMLImageElement ||
+    clonedNode instanceof SVGImageElement
 
-  return Promise.resolve(clonedNode.src)
+  if (!isImageInstance) return Promise.resolve(clonedNode)
+
+  let imageUrlAttribute: 'src' | 'href' | 'xlink:href' = 'src'
+
+  const elementImageUrl = (() => {
+    switch (true) {
+      case !!clonedNode.getAttribute('src'): {
+        imageUrlAttribute = 'src'
+
+        return clonedNode.getAttribute('src')
+      }
+
+      case !!clonedNode.getAttribute('xlink:href'): {
+        imageUrlAttribute = 'xlink:href'
+
+        return clonedNode.getAttribute('xlink:href')
+      }
+
+      case !!clonedNode.getAttribute('href'): {
+        imageUrlAttribute = 'href'
+
+        return clonedNode.getAttribute('href')
+      }
+
+      default:
+        return undefined
+    }
+  })()
+
+  if (!elementImageUrl)
+    return Promise.reject(new Error('Provide a valid image url to element'))
+
+  if (isDataUrl(elementImageUrl)) return Promise.resolve(clonedNode)
+
+  return Promise.resolve(elementImageUrl)
     .then((url) => getBlobFromURL(url, options))
-    .then((data) => toDataURL(data!, getMimeType(clonedNode.src)))
+    .then((data) => toDataURL(data!, getMimeType(elementImageUrl)))
     .then(
       (dataURL) =>
         new Promise((resolve, reject) => {
           clonedNode.onload = resolve
           clonedNode.onerror = reject
-          clonedNode.src = dataURL
+          clonedNode.setAttribute(imageUrlAttribute, dataURL)
         }),
     )
     .then(

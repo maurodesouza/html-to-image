@@ -239,6 +239,14 @@ describe('html to image', () => {
         .catch(done)
     })
 
+    it('should render svg tag image', (done) => {
+      Helper.bootstrap('svg-images/node.html', 'svg-images/style.css')
+        .then(util.delay(500))
+        .then(Helper.assertTextRendered(['PNG', 'JPG']))
+        .then(done)
+        .catch(done)
+    })
+
     it('should render svg `<rect>` with width and heigth', (done) => {
       Helper.bootstrap(
         'svg-rect/node.html',
